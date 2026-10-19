@@ -267,7 +267,6 @@ function setPos(lat, lng, acc, src){
   $("coords").innerHTML = `📌 ${pos.lat}, ${pos.lng}` + (pos.acc ? ` (±${pos.acc} m)` : "") +
     ` — <a href="${g}" target="_blank" rel="noopener">apri in Google Maps</a>. Puoi trascinare il segnaposto.`;
 }
-map.on("click", e => setPos(e.latlng.lat, e.latlng.lng, null, "mappa"));
 
 function gpsMsg(text, ok){
   const m = $("gpsMsg"); m.className = "msg " + (ok ? "ok" : "err"); m.textContent = text;
