@@ -93,6 +93,7 @@
     <div class="msg" id="gpsMsg"></div>
     <div class="hint">Oppure tocca la mappa nel punto esatto, o incolla un link di Google Maps.</div>
     <div id="map"></div>
+    <div class="hint warn" id="mapDiag" style="display:none"></div>
     <div class="coords" id="coords">Nessuna posizione selezionata.</div>
 
     <label for="gmaps">Link di Google Maps <span class="opt">(facoltativo)</span></label>
@@ -158,7 +159,7 @@
 </section>
 </main>
 
-<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.</footer>
+<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.<br><span style="opacity:.6">Versione 4</span></footer>
 
 <script>
 /* === CONFIGURAZIONE ===
@@ -188,6 +189,29 @@ $("codice").addEventListener("input", e => {
   if (v && !codeRx.test(v)) { h.textContent = "Formato insolito: controlla (es. 044MC123)."; h.className="hint warn"; }
   else { h.textContent = "Il codice del tuo allevamento registrato in Banca Dati Apistica."; h.className="hint"; }
 });
+
+/* --- Diagnostica Google Maps: Google scrive il motivo del rifiuto solo in console --- */
+let gmapsError = "";
+const MOTIVI = {
+  RefererNotAllowedMapError: "la chiave non è autorizzata per questo sito: in Console → Credenziali → chiave → Siti web aggiungi https://apicoltorimacerata-ai.github.io/*",
+  ApiNotActivatedMapError: "la Maps JavaScript API non è abilitata nel progetto (API e servizi → Libreria)",
+  BillingNotEnabledMapError: "la fatturazione non è collegata al progetto",
+  InvalidKeyMapError: "la chiave non è valida (copiata male?)",
+  ApiTargetBlockedMapError: "la chiave è limitata ad altre API: aggiungi Maps JavaScript API nelle limitazioni API",
+  ExpiredKeyMapError: "la chiave è scaduta o è stata eliminata"
+};
+const _ce = console.error.bind(console);
+console.error = (...a) => {
+  const t = a.join(" "); const m = t.match(/(\w+MapError)/);
+  if (m && !gmapsError) gmapsError = m[1];
+  _ce(...a);
+};
+function showMapDiag(reason){
+  const d = $("mapDiag");
+  const code = gmapsError || reason || "motivo sconosciuto";
+  d.textContent = "Mappa Google non disponibile, uso la mappa alternativa. Motivo: " + (MOTIVI[code] ? MOTIVI[code] + " [" + code + "]" : code);
+  d.style.display = "block";
+}
 
 /* --- Mappa: Google Maps, con riserva OpenStreetMap --- */
 let mapApi = null;          // { show(lat,lng) } – sposta/crea il segnaposto e centra la mappa
@@ -224,7 +248,7 @@ async function initGoogle(){
   };
   map.addListener("click", e => setPos(e.latLng.lat(), e.latLng.lng(), null, "mappa"));
   // una chiave non valida si manifesta dopo il caricamento: se succede, si passa alla riserva
-  failed.catch(() => { $("map").innerHTML = ""; initLeaflet(); });
+  failed.catch(() => { setTimeout(() => showMapDiag("chiave rifiutata"), 300); $("map").innerHTML = ""; initLeaflet(); });
   return api;
 }
 
@@ -256,9 +280,9 @@ async function initLeaflet(){
 
 initGoogle()
   .then(api => { mapApi = api; if (pendingPos) api.show(pendingPos.lat, pendingPos.lng); })
-  .catch(() => initLeaflet().catch(() => {
+  .catch(err => { showMapDiag(err && err.message); return initLeaflet(); }).catch(() => {
     $("map").innerHTML = '<p style="padding:12px">Mappa non disponibile: usa il GPS o incolla un link di Google Maps.</p>';
-  }));
+  });
 
 function setPos(lat, lng, acc, src){
   pos = {lat:+lat.toFixed(6), lng:+lng.toFixed(6), acc: acc ? Math.round(acc) : null, src};
