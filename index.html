@@ -159,7 +159,7 @@
 </section>
 </main>
 
-<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.<br><span style="opacity:.6">Versione 4</span></footer>
+<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.<br><span style="opacity:.6">Versione 5</span></footer>
 
 <script>
 /* === CONFIGURAZIONE ===
@@ -225,9 +225,14 @@ function loadScript(src){
 async function initGoogle(){
   if (!GMAPS_KEY) throw new Error("nessuna chiave");
   const failed = new Promise((_, rej) => { window.gm_authFailure = () => rej(new Error("chiave rifiutata")); });
-  window.__gmReady = () => {};
+  // aspetta il callback di Google (lo script scaricato non è ancora l'API pronta)
+  const ready = new Promise((res, rej) => {
+    window.__gmReady = res;
+    setTimeout(() => rej(new Error("Google Maps non risponde")), 15000);
+  });
   await loadScript(`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GMAPS_KEY)}` +
-                   `&v=weekly&loading=async&language=it&region=IT&libraries=marker&callback=__gmReady`);
+                   `&v=weekly&loading=async&language=it&region=IT&libraries=maps,marker&callback=__gmReady`);
+  await ready;
   const { Map } = await google.maps.importLibrary("maps");
   const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
   const map = new Map($("map"), {
