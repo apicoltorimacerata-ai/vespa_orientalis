@@ -132,9 +132,11 @@
   <section class="card">
     <h2>Foto <span style="text-transform:none;letter-spacing:0">(se disponibili)</span></h2>
     <div class="row">
-      <button type="button" class="btn-ghost" id="addPhoto">📷 Aggiungi foto</button>
+      <button type="button" class="btn" id="takePhoto">📸 Scatta foto</button>
+      <button type="button" class="btn-ghost" id="addPhoto">🖼️ Scegli dalla galleria</button>
     </div>
     <input id="foto" type="file" accept="image/*" multiple hidden>
+    <input id="fotoCam" type="file" accept="image/*" capture="environment" hidden>
     <div class="hint">Fino a 4 foto della vespa o del nido. Vengono ridotte automaticamente.</div>
     <div class="thumbs" id="thumbs"></div>
   </section>
@@ -159,7 +161,7 @@
 </section>
 </main>
 
-<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.<br><span style="opacity:.6">Versione 5</span></footer>
+<footer>Non avvicinarti ai nidi e non tentare di rimuoverli da solo.<br><span style="opacity:.6">Versione 6</span></footer>
 
 <script>
 /* === CONFIGURAZIONE ===
@@ -344,13 +346,16 @@ $("gmaps").addEventListener("change", e => {
 
 /* --- Foto: ridimensionamento lato client --- */
 $("addPhoto").onclick = () => $("foto").click();
-$("foto").addEventListener("change", async e => {
+$("takePhoto").onclick = () => $("fotoCam").click();
+$("fotoCam").addEventListener("change", e => addPhotos(e));
+$("foto").addEventListener("change", e => addPhotos(e));
+async function addPhotos(e){
   for (const file of [...e.target.files]) {
     if (photos.length >= MAX_PHOTOS) { showErr(`Massimo ${MAX_PHOTOS} foto.`); break; }
     try { photos.push(await shrink(file)); } catch { showErr("Impossibile leggere una delle foto."); }
   }
   e.target.value = ""; drawThumbs();
-});
+}
 function shrink(file){
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
